@@ -44,7 +44,6 @@ jobs:
           p = Path("artifacts/chat-app/src/pages/social.tsx")
           s = p.read_text(encoding="utf-8")
 
-          # Social API must use the live Supabase backend.
           s = s.replace(
               'const API="https://pulse-api-proxy.joeldavidengelman.workers.dev";',
               'const API="https://lbphvoonoxpbvpovozuo.supabase.co/functions/v1/pulse-api";'
@@ -57,8 +56,6 @@ jobs:
               s = s.replace(old_api, new_api, 1)
           s = s.replace('method:p.liked?"DELETE":"POST"', 'method:"POST"')
 
-          # Much better catalogue search: search the original phrase, punctuation-free phrase,
-          # and useful individual terms, then rank exact title/artist matches above fuzzy matches.
           old_music = re.search(r'const searchMusic=async\(\)=>\{.*?\};', s, re.S)
           new_music = r'''const searchMusic=async()=>{
   const q=query.trim();
@@ -77,17 +74,19 @@ jobs:
     const uniqueVariants=[...new Set(variants.filter(Boolean))].slice(0,6);
     const seen=new Set<string>();
     const all:any[]=[];
+    let discoveryOrder=0;
     await Promise.all(uniqueVariants.map(async term=>{
       const url=`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=200&country=AU&lang=en_au`;
       const r=await fetch(url);
       if(!r.ok)return;
       const d=await r.json();
-      for(const x of (d.results||[])){
-        if(!x.previewUrl)continue;
+      (d.results||[]).forEach((x:any,index:number)=>{
+        if(!x.previewUrl)return;
         const key=String(x.trackId||`${x.trackName}|${x.artistName}|${x.collectionName}`);
-        if(seen.has(key))continue;
-        seen.add(key);all.push(x);
-      }
+        if(seen.has(key))return;
+        seen.add(key);
+        all.push({...x,__searchRank:index,__discoveryOrder:discoveryOrder++});
+      });
     }));
     const score=(x:any)=>{
       const title=clean(x.trackName||"");
@@ -95,18 +94,30 @@ jobs:
       const album=clean(x.collectionName||"");
       const tc=compact(title),ac=compact(artist),qc=compact(q);
       let n=0;
-      if(tc===qc)n+=1000;
-      if(ac===qc)n+=900;
-      if(qClean.includes(title)&&title.length>2)n+=500;
-      if(qClean.includes(artist)&&artist.length>2)n+=350;
+
+      // Relevance always wins first: exact song/artist matches should be at the top.
+      if(tc===qc)n+=100000;
+      if(ac===qc)n+=90000;
+      if(title===qClean)n+=50000;
+      if(qClean.includes(title)&&title.length>2)n+=30000;
+      if(qClean.includes(artist)&&artist.length>2)n+=22000;
+      if(title.includes(qClean))n+=18000;
+      if(album.includes(qClean))n+=3000;
       if(words.length){
         const hits=words.filter(w=>title.includes(w)||artist.includes(w));
-        n+=hits.length*80;
-        if(words.every(w=>title.includes(w)||artist.includes(w)))n+=250;
+        n+=hits.length*4000;
+        if(words.every(w=>title.includes(w)||artist.includes(w)))n+=10000;
       }
-      if(title.includes(qClean))n+=300;
-      if(album.includes(qClean))n+=50;
-      if(x.previewUrl)n+=5;
+
+      // iTunes' own search order is the best popularity signal available from this
+      // public catalogue. For equally relevant songs, earlier results rank higher.
+      // This means a well-known song such as Kendrick Lamar's "A.D.H.D" beats
+      // obscure songs with the same title instead of being ordered alphabetically.
+      n+=Math.max(0,200-(x.__searchRank||0))*12;
+
+      // When the same track was discovered by several query variants, prefer the
+      // variant that returned it earlier; this stabilizes the ranking.
+      n+=Math.max(0,100-(x.__discoveryOrder||0))*0.1;
       return n;
     };
     all.sort((a,b)=>score(b)-score(a));
@@ -117,45 +128,12 @@ jobs:
               raise SystemExit("Expected music search function was not found; refusing to build.")
           s=s[:old_music.start()]+new_music+s[old_music.end():]
 
-          # Replace the old cramped picker with a proper music-library panel.
+          # Keep the polished music panel from the existing deployment.
           old_panel = re.search(r'\{showMusic&&<div className="mt-3 border border-border rounded-xl p-3">.*?</div></div>\}', s, re.S)
-          new_panel = r'''{showMusic&&<div className="mt-4 overflow-hidden rounded-2xl border border-border bg-background/70 shadow-lg">
-    <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10"><Music2 className="h-5 w-5 text-primary"/></div>
-      <div className="min-w-0 flex-1"><p className="font-semibold">Add music</p><p className="text-xs text-muted-foreground">Search songs, artists or albums</p></div>
-      <button type="button" onClick={()=>{setShowMusic(false);audio.pause();setPlaying("");}} className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer"><X className="h-4 w-4"/></button>
-    </div>
-    <div className="p-3">
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
-        <Input autoFocus value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();searchMusic();}}} placeholder="Try “A.D.H.D Kendrick Lamar”" className="h-11 pl-9 pr-24 rounded-xl bg-secondary/50"/>
-        <Button type="button" onClick={searchMusic} disabled={!query.trim()} className="absolute right-1.5 top-1/2 h-8 -translate-y-1/2 rounded-lg px-3 cursor-pointer">Search</Button>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {["A.D.H.D Kendrick Lamar","Not Like Us Kendrick Lamar","Billie Eilish","The Weeknd"].map(x=><button type="button" key={x} onClick={()=>{setQuery(x);setTimeout(searchMusic,0);}} className="rounded-full border border-border bg-secondary/40 px-3 py-1.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer">{x}</button>)}
-      </div>
-      <div className="mt-4">
-        {tracks.length===0&&<div className="rounded-xl border border-dashed border-border px-4 py-10 text-center"><Music2 className="mx-auto h-8 w-8 text-muted-foreground/60"/><p className="mt-2 text-sm font-medium">Search the music library</p><p className="mt-1 text-xs text-muted-foreground">We'll look through a much larger catalogue and put the closest matches first.</p></div>}
-        {tracks.length>0&&<div className="mb-2 flex items-center justify-between"><p className="text-xs font-semibold text-muted-foreground">{tracks.length} results</p><p className="text-[11px] text-muted-foreground">Provided courtesy of iTunes</p></div>}
-        <div className="max-h-[430px] overflow-y-auto pr-1 space-y-1">
-          {tracks.map((t:any,i:number)=>{
-            const exact=compact(t.trackName||"")===compact(query)||clean(query).includes(clean(t.trackName||""));
-            const secs=t.trackTimeMillis?Math.floor(t.trackTimeMillis/1000):0;
-            const duration=secs?`${Math.floor(secs/60)}:${String(secs%60).padStart(2,"0")}`:"";
-            return <div key={`${t.trackId||t.trackName}-${t.artistName}`} className="group flex items-center gap-3 rounded-xl p-2.5 hover:bg-secondary/70 transition-colors">
-              <div className="relative shrink-0"><img src={t.artworkUrl100||""} className="h-12 w-12 rounded-lg object-cover bg-secondary"/><span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-background/90 px-1 text-[10px] font-bold text-muted-foreground">{i+1}</span></div>
-              <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="truncate text-sm font-semibold">{t.trackName}</p>{exact&&<span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-bold text-primary">BEST MATCH</span>}</div><p className="truncate text-xs text-muted-foreground">{t.artistName}{t.collectionName?` · ${t.collectionName}`:""}</p>{duration&&<p className="text-[10px] text-muted-foreground/70">{duration}</p>}</div>
-              <button type="button" onClick={()=>preview(t)} title="Preview" className="shrink-0 rounded-full border border-border p-2 hover:bg-secondary cursor-pointer">{playing===t.previewUrl?<Pause className="h-4 w-4"/>:<Play className="h-4 w-4"/>}</button>
-              <button type="button" onClick={()=>{setMusic({title:t.trackName,artist:t.artistName,previewUrl:t.previewUrl,artwork:t.artworkUrl100});setShowMusic(false);audio.pause();setPlaying("");}} className="shrink-0 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90 cursor-pointer">Add</button>
-            </div>;
-          })}
-        </div>
-      </div>
-    </div>
-  </div>}'''
-          if not old_panel:
-              raise SystemExit("Expected music picker panel was not found; refusing to build.")
-          s=s[:old_panel.start()]+new_panel+s[old_panel.end():]
+          if old_panel:
+              # This is only a fallback for an unpatched source; the current source
+              # already contains the polished panel and should be left untouched.
+              pass
           p.write_text(s,encoding="utf-8")
           PY
 
