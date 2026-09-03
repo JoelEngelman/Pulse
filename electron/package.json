@@ -1,17 +1,24 @@
 {
   "name": "pulse-desktop",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Pulse desktop application",
   "main": "main.cjs",
   "scripts": { "start": "electron .", "dist": "electron-builder" },
-  "devDependencies": { "electron": "^37.10.3", "electron-builder": "^26.15.3" },
+  "dependencies": {
+    "electron-updater": "^6.6.2"
+  },
+  "devDependencies": {
+    "electron": "^37.10.3",
+    "electron-builder": "^26.15.3"
+  },
   "build": {
     "appId": "com.joelengelman.pulse",
     "productName": "Pulse",
     "asar": true,
-    "files": ["main.cjs", "preload.cjs", "package.json"],
+    "files": ["main.cjs", "preload.cjs", "package.json", "node_modules/electron-updater/**/*"],
     "directories": { "output": "dist" },
+    "publish": [{ "provider": "github", "owner": "JoelEngelman", "repo": "Pulse", "releaseType": "release" }],
     "win": { "target": [{ "target": "nsis", "arch": ["x64"] }], "icon": "../artifacts/chat-app/public/favicon.ico", "artifactName": "Pulse-Windows-Setup.exe" },
     "mac": { "target": ["dmg", "zip"], "artifactName": "Pulse-macOS-${version}.${ext}" },
     "linux": { "target": ["AppImage", "deb"], "category": "Network", "artifactName": "Pulse-Linux-${version}.${ext}" },
