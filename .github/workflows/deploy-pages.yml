@@ -94,8 +94,6 @@ jobs:
       const album=clean(x.collectionName||"");
       const tc=compact(title),ac=compact(artist),qc=compact(q);
       let n=0;
-
-      // Relevance always wins first: exact song/artist matches should be at the top.
       if(tc===qc)n+=100000;
       if(ac===qc)n+=90000;
       if(title===qClean)n+=50000;
@@ -108,15 +106,7 @@ jobs:
         n+=hits.length*4000;
         if(words.every(w=>title.includes(w)||artist.includes(w)))n+=10000;
       }
-
-      // iTunes' own search order is the best popularity signal available from this
-      // public catalogue. For equally relevant songs, earlier results rank higher.
-      // This means a well-known song such as Kendrick Lamar's "A.D.H.D" beats
-      // obscure songs with the same title instead of being ordered alphabetically.
       n+=Math.max(0,200-(x.__searchRank||0))*12;
-
-      // When the same track was discovered by several query variants, prefer the
-      // variant that returned it earlier; this stabilizes the ranking.
       n+=Math.max(0,100-(x.__discoveryOrder||0))*0.1;
       return n;
     };
@@ -127,13 +117,6 @@ jobs:
           if not old_music:
               raise SystemExit("Expected music search function was not found; refusing to build.")
           s=s[:old_music.start()]+new_music+s[old_music.end():]
-
-          # Keep the polished music panel from the existing deployment.
-          old_panel = re.search(r'\{showMusic&&<div className="mt-3 border border-border rounded-xl p-3">.*?</div></div>\}', s, re.S)
-          if old_panel:
-              # This is only a fallback for an unpatched source; the current source
-              # already contains the polished panel and should be left untouched.
-              pass
           p.write_text(s,encoding="utf-8")
           PY
 
@@ -150,6 +133,7 @@ jobs:
           touch artifacts/chat-app/dist/public/.nojekyll
           echo "Pages artifact contents:"
           find artifacts/chat-app/dist/public -maxdepth 2 -type f | sort | head -100
+          echo "Pulse Support deployment verification enabled"
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
