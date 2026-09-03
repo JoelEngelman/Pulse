@@ -26,13 +26,13 @@ jobs:
         include:
           - name: Windows
             os: windows-latest
-            target: nsis
+            target: --win
           - name: macOS
             os: macos-latest
-            target: dmg
+            target: --mac
           - name: Linux
             os: ubuntu-latest
-            target: AppImage
+            target: --linux
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,7 +45,7 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Build installer
         working-directory: electron
-        run: npx electron-builder --${{ matrix.target }} --publish never
+        run: npx electron-builder ${{ matrix.target }} --publish never
       - name: Verify installer
         shell: bash
         run: |
@@ -75,6 +75,9 @@ jobs:
           java-version: '21'
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+          accept-android-sdk-licenses: true
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
