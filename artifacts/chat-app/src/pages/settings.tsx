@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useTheme, THEME_OPTIONS, type Theme } from "@/hooks/use-theme";
 import { useLogout } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { PulseIconPicker } from "@/components/pulse-icon-picker";
 
 const API = "https://pulse-api-proxy.joeldavidengelman.workers.dev";
 const ACCOUNTS_KEY = "pulse-saved-accounts";
@@ -26,6 +27,7 @@ export default function Settings() {
   const saveSearchOnly = async (enabled: boolean) => { setPrivacyBusy(true); setPrivacyMessage(""); try { const r = await fetch(`${API}/api/users/me`, { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messageSearchOnly: enabled }) }); const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || "Couldn't update message privacy."); setSearchOnly(enabled); setPrivacyMessage(enabled ? "People must search your exact username before starting a new chat." : "Anyone can start chats with you normally."); queryClient.setQueryData(["/api/auth/me"], d); } catch (e:any) { setPrivacyMessage(e.message || "Couldn't update message privacy."); } finally { setPrivacyBusy(false); } };
   return <div className="w-full h-full overflow-y-auto custom-scrollbar"><div className="max-w-2xl mx-auto px-4 py-8">
     <h1 className="text-3xl font-bold">Settings</h1><p className="text-muted-foreground mt-1 mb-7">Customize Pulse and manage your account.</p>
+    <PulseIconPicker />
     <section className="glass-panel rounded-3xl p-5 mb-5"><div className="flex items-center gap-3 mb-4"><div className="p-2 rounded-xl bg-primary/10 text-primary"><Palette className="w-5 h-5"/></div><div><h2 className="font-semibold">Themes</h2><p className="text-xs text-muted-foreground">Choose a complete visual style with its own background image.</p></div></div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{THEME_OPTIONS.map((option) => <button key={option.id} onClick={() => setTheme(option.id as Theme)} className={`group relative overflow-hidden rounded-2xl border text-left transition-all hover:scale-[1.02] ${theme === option.id ? "border-primary ring-2 ring-primary/30" : "border-border"}`}>
         <div className="h-24 relative overflow-hidden" style={option.image ? { backgroundImage: `linear-gradient(135deg, rgba(0,0,0,.28), rgba(0,0,0,.55)), url(${option.image})`, backgroundSize: "cover", backgroundPosition: "center" } : { background: option.id === "light" ? "linear-gradient(135deg,#eef2f7,#ffffff)" : "linear-gradient(135deg,#05070d,#17202b)" }}><div className="absolute inset-0 backdrop-blur-[1px]"/>{theme === option.id && <span className="absolute top-2 right-2 grid place-items-center w-7 h-7 rounded-full bg-primary text-primary-foreground shadow-lg"><Check className="w-4 h-4"/></span>}</div>
