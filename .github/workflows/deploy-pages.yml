@@ -36,6 +36,28 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: Fix Social API routing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("artifacts/chat-app/src/pages/social.tsx")
+          s = p.read_text(encoding="utf-8")
+          s = s.replace(
+              'const API="https://pulse-api-proxy.joeldavidengelman.workers.dev";',
+              'const API="https://lbphvoonoxpbvpovozuo.supabase.co/functions/v1/pulse-api";'
+          )
+          s = s.replace('`/api/', '`/')
+          s = s.replace('"/api/', '"/')
+          old = 'async function api(path:string,options:RequestInit={}){const r=await fetch(`${API}${path}`,{...options,credentials:"include",headers:{"Content-Type":"application/json",...(options.headers||{})}});'
+          new = 'async function api(path:string,options:RequestInit={}){const token=localStorage.getItem("pulse-supabase-access-token")||"";const r=await fetch(`${API}${path}`,{...options,credentials:"omit",headers:{"Content-Type":"application/json",...(token?{Authorization:`Bearer ${token}`}:{ }),...(options.headers||{})}});'
+          if old not in s:
+              raise SystemExit("Expected Social API helper was not found; refusing to build with an unsafe patch.")
+          s = s.replace(old, new, 1)
+          s = s.replace('method:p.liked?"DELETE":"POST"', 'method:"POST"')
+          p.write_text(s, encoding="utf-8")
+          PY
+          grep -n "const API=" artifacts/chat-app/src/pages/social.tsx
+
       - name: Build Pulse
         run: pnpm --filter @workspace/chat-app build
         env:
