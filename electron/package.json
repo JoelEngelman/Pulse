@@ -3,6 +3,8 @@
   "version": "1.0.1",
   "private": true,
   "description": "Pulse desktop application",
+  "homepage": "https://joelengelman.github.io/Pulse/",
+  "author": "Pulse Team <noreply@github.com>",
   "main": "main.cjs",
   "scripts": { "start": "electron .", "dist": "electron-builder" },
   "dependencies": {
