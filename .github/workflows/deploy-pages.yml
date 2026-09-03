@@ -36,7 +36,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Fix Social API routing
+      - name: Fix Social API routing and music search
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -54,9 +54,15 @@ jobs:
               raise SystemExit("Expected Social API helper was not found; refusing to build with an unsafe patch.")
           s = s.replace(old, new, 1)
           s = s.replace('method:p.liked?"DELETE":"POST"', 'method:"POST"')
-          p.write_text(s, encoding="utf-8")
+          old_music = 'const searchMusic=async()=>{if(!query.trim())return;try{const r=await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=15`);const d=await r.json();setTracks((d.results||[]).filter((x:Track)=>x.previewUrl));}catch{setError("Couldn\'t search the music library.");}};'
+          new_music = '''const searchMusic=async()=>{\n  const q=query.trim();\n  if(!q)return;\n  try{\n    const variants=[q,q.replace(/[.]/g," ").replace(/\\s+/g," ").trim()];\n    const seen=new Set<string>();\n    const all:any[]=[];\n    for(const term of variants){\n      const r=await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=200&country=AU`);\n      const d=await r.json();\n      for(const x of (d.results||[])){\n        const key=`${x.trackId||x.trackName}-${x.artistName}`;\n        if(!seen.has(key)&&x.previewUrl){seen.add(key);all.push(x);}\n      }\n    }\n    const norm=(v:string)=>v.toLowerCase().replace(/[^a-z0-9]+/g,"").trim();\n    const nq=norm(q);\n    all.sort((a,b)=>{\n      const at=norm(a.trackName||""),bt=norm(b.trackName||"");\n      const aa=norm(a.artistName||""),ba=norm(b.artistName||"");\n      const as=(at===nq?100:0)+(aa&&nq.includes(aa)?35:0)+(nq.includes(at)?25:0);\n      const bs=(bt===nq?100:0)+(ba&&nq.includes(ba)?35:0)+(nq.includes(bt)?25:0);\n      return bs-as;\n    });\n    setTracks(all.slice(0,100));\n  }catch{setError("Couldn\\'t search the music library.");}\n};'''
+          if old_music not in s:
+              raise SystemExit("Expected music search function was not found; refusing to build with an unsafe patch.")
+          s=s.replace(old_music,new_music,1)
+          p.write_text(s,encoding="utf-8")
           PY
           grep -n "const API=" artifacts/chat-app/src/pages/social.tsx
+          grep -n "const searchMusic=" artifacts/chat-app/src/pages/social.tsx
 
       - name: Build Pulse
         run: pnpm --filter @workspace/chat-app build
