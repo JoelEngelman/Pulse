@@ -1,0 +1,19 @@
+{
+  "name": "pulse-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build:web": "pnpm --dir ../artifacts/chat-app build",
+    "sync": "npm run build:web && npx cap sync",
+    "android": "npm run sync && npx cap open android",
+    "ios": "npm run sync && npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^7.4.3",
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/ios": "^7.4.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.3"
+  }
+}
