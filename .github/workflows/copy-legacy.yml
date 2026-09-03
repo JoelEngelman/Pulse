@@ -5,6 +5,7 @@ on:
       - main
 permissions:
   contents: write
+  workflows: write
 jobs:
   copy:
     runs-on: ubuntu-latest
