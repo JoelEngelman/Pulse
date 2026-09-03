@@ -1,0 +1,14 @@
+{
+  "name": "Pulse",
+  "short_name": "Pulse",
+  "description": "Pulse — messaging and social, everywhere.",
+  "start_url": "/Pulse/",
+  "scope": "/Pulse/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#0b1020",
+  "background_color": "#0b1020",
+  "icons": [
+    { "src": "/Pulse/favicon.ico", "sizes": "any", "type": "image/x-icon", "purpose": "any maskable" }
+  ]
+}
