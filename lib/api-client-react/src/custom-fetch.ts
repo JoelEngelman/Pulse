@@ -5,10 +5,9 @@ export type AuthTokenGetter = () => Promise<string | null> | string | null;
 
 const NO_BODY_STATUS = new Set([204, 205, 304]);
 const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
-// Browser traffic must go through the public Cloudflare proxy. The proxy forwards
-// requests to the Supabase-backed Pulse API and supplies the CORS boundary needed
-// by the GitHub Pages frontend.
-const DEFAULT_BROWSER_API_URL = "https://pulse-api-proxy.joelengelman.workers.dev";
+// The new Pulse backend is the Supabase Edge Function. Keep browser requests
+// pointed directly at the Supabase project; the project handles the API/CORS.
+const DEFAULT_BROWSER_API_URL = "https://lbphvoonoxpbvpovozuo.supabase.co/functions/v1/pulse-api";
 const TOKEN_KEY = "pulse-supabase-access-token";
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
