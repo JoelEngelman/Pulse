@@ -12,7 +12,7 @@
     "asar": true,
     "files": ["main.cjs", "preload.cjs", "package.json"],
     "directories": { "output": "dist" },
-    "win": { "target": [{ "target": "nsis", "arch": ["x64"] }, { "target": "portable", "arch": ["x64"] }], "icon": "../artifacts/chat-app/public/favicon.ico", "artifactName": "Pulse-Windows-Setup.exe" },
+    "win": { "target": [{ "target": "nsis", "arch": ["x64"] }], "icon": "../artifacts/chat-app/public/favicon.ico", "artifactName": "Pulse-Windows-Setup.exe" },
     "mac": { "target": ["dmg", "zip"], "artifactName": "Pulse-macOS-${version}.${ext}" },
     "linux": { "target": ["AppImage", "deb"], "category": "Network", "artifactName": "Pulse-Linux-${version}.${ext}" },
     "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "createStartMenuShortcut": true }
