@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Download, Monitor, Smartphone, Apple, Chrome, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -94,6 +94,7 @@ export function InstallPulse() {
             const active = selected === device.id;
             return (
               <button
+                type="button"
                 key={device.id}
                 onClick={() => setSelected(device.id)}
                 className={`relative text-left rounded-2xl border p-4 transition-all cursor-pointer ${active ? "border-primary bg-primary/10 ring-2 ring-primary/20" : "border-border bg-secondary/20 hover:bg-secondary/50"}`}
@@ -112,7 +113,7 @@ export function InstallPulse() {
           <div>
             <p className="font-semibold">{chosen.name}</p>
             {isIOS ? (
-              <p className="text-sm text-muted-foreground mt-1">Apple requires signing and distribution through Apple for a real public iPhone/iPad app. For now, Pulse opens directly in Safari instead of giving you a fake or unusable download.</p>
+              <p className="text-sm text-muted-foreground mt-1">A public native iPhone/iPad download requires Apple signing. Pulse therefore opens in Safari here instead of offering an unusable simulator file.</p>
             ) : (
               <p className="text-sm text-muted-foreground mt-1">This downloads the real Pulse application for {chosen.name}, with its own app window and launcher entry.</p>
             )}
