@@ -3,8 +3,12 @@ name: Build Pulse Apps
 on:
   workflow_dispatch:
   push:
-    tags:
-      - 'v*'
+    branches: [main]
+    paths:
+      - 'electron/**'
+      - 'mobile/**'
+      - 'artifacts/chat-app/**'
+      - '.github/workflows/build-apps.yml'
 
 permissions:
   contents: write
@@ -19,16 +23,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: 24
+        with: { node-version: 24 }
       - name: Install Electron dependencies
         working-directory: electron
         run: npm install
       - name: Build installer
         working-directory: electron
         run: npm run dist
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload desktop artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -42,20 +43,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: 24
+        with: { node-version: 24 }
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
-          run_install: false
+        with: { version: 10, run_install: false }
       - name: Install mobile dependencies
         working-directory: mobile
         run: npm install
       - name: Build web bundle
         run: pnpm --filter @workspace/chat-app build
-        env:
-          NODE_ENV: production
-          BASE_PATH: /
+        env: { NODE_ENV: production, BASE_PATH: / }
       - name: Add Android project
         working-directory: mobile
         run: npx cap add android
@@ -67,32 +63,24 @@ jobs:
         run: ./gradlew assembleDebug
       - name: Rename APK
         run: cp mobile/android/app/build/outputs/apk/debug/app-debug.apk mobile/Pulse-Android.apk
-      - name: Upload Android APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: pulse-android
-          path: mobile/Pulse-Android.apk
+      - uses: actions/upload-artifact@v4
+        with: { name: pulse-android, path: mobile/Pulse-Android.apk }
 
   ios:
-    name: iOS build (unsigned simulator app)
+    name: iOS simulator build
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: 24
+        with: { node-version: 24 }
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
-          run_install: false
+        with: { version: 10, run_install: false }
       - name: Install mobile dependencies
         working-directory: mobile
         run: npm install
       - name: Build web bundle
         run: pnpm --filter @workspace/chat-app build
-        env:
-          NODE_ENV: production
-          BASE_PATH: /
+        env: { NODE_ENV: production, BASE_PATH: / }
       - name: Add iOS project
         working-directory: mobile
         run: npx cap add ios
@@ -104,29 +92,29 @@ jobs:
         run: xcodebuild -workspace ios/App/App.xcworkspace -scheme App -sdk iphonesimulator -configuration Debug -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
       - name: Package simulator app
         run: ditto -c -k --sequesterRsrc --keepParent mobile/build/Build/Products/Debug-iphonesimulator/App.app mobile/Pulse-iOS-Simulator.zip
-      - name: Upload iOS build
-        uses: actions/upload-artifact@v4
-        with:
-          name: pulse-ios-simulator
-          path: mobile/Pulse-iOS-Simulator.zip
+      - uses: actions/upload-artifact@v4
+        with: { name: pulse-ios-simulator, path: mobile/Pulse-iOS-Simulator.zip }
 
   release:
-    name: Publish release assets
-    needs: [desktop, android]
-    if: startsWith(github.ref, 'refs/tags/v')
+    name: Publish Pulse downloads
+    needs: [desktop, android, ios]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
-        with:
-          path: release-assets
-          merge-multiple: true
-      - name: Publish GitHub release
+        with: { path: release-assets, merge-multiple: true }
+      - name: Publish latest release
         uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
+          tag_name: latest
+          name: Pulse Latest
+          prerelease: false
+          make_latest: true
+          body: |
+            Latest native Pulse builds. Desktop builds are real Electron applications. Android is a native Capacitor APK. The iOS build is an unsigned simulator build; App Store/TestFlight distribution requires Apple signing.
           files: |
             release-assets/**/*.exe
             release-assets/**/*.dmg
+            release-assets/**/*.zip
             release-assets/**/*.AppImage
             release-assets/**/*.deb
             release-assets/**/*.apk
