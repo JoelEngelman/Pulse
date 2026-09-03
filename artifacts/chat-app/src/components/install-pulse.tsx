@@ -1,70 +1,59 @@
-import { useEffect, useState } from "react";
-import { Download, MonitorSmartphone, Smartphone, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Download, Monitor, Smartphone, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+declare global {
+  interface Window { pulseDesktop?: { installed: boolean; platform: string; version: string } }
+}
 
 function isStandalone() {
   return window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone === true;
 }
 
-function isIOS() {
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+function platform() {
+  const ua = navigator.userAgent.toLowerCase();
+  if (/iphone|ipad|ipod/.test(ua)) return "ios";
+  if (/android/.test(ua)) return "android";
+  if (/mac os x/.test(ua)) return "mac";
+  if (/windows/.test(ua)) return "windows";
+  if (/linux/.test(ua)) return "linux";
+  return "other";
 }
 
+const RELEASES = "https://github.com/JoelEngelman/Pulse/releases/latest";
+
 export function InstallPulse() {
-  const [prompt, setPrompt] = useState<any>(null);
   const [open, setOpen] = useState(false);
   const [installed, setInstalled] = useState(false);
+  const device = useMemo(platform, []);
 
   useEffect(() => {
-    if (isStandalone()) { setInstalled(true); return; }
-    const handler = (event: Event) => {
-      event.preventDefault();
-      setPrompt(event);
-    };
-    window.addEventListener("beforeinstallprompt", handler);
-    // Show on every normal web launch. Closing it only closes this launch;
-    // the standalone check above prevents it from appearing inside the installed app.
+    if (window.pulseDesktop?.installed || isStandalone()) { setInstalled(true); return; }
     setOpen(true);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
-
-  useEffect(() => {
-    const onInstalled = () => { setInstalled(true); setOpen(false); setPrompt(null); };
+    const onInstalled = () => { setInstalled(true); setOpen(false); };
     window.addEventListener("appinstalled", onInstalled);
     return () => window.removeEventListener("appinstalled", onInstalled);
   }, []);
 
   if (installed || !open) return null;
 
-  const install = async () => {
-    if (prompt) {
-      await prompt.prompt();
-      const result = await prompt.userChoice.catch(() => null);
-      if (result?.outcome === "accepted") setOpen(false);
-      return;
-    }
-    setOpen(false);
-  };
-
-  const ios = isIOS();
+  const label = device === "windows" ? "Download for Windows" : device === "mac" ? "Download for macOS" : device === "linux" ? "Download for Linux" : device === "android" ? "Download for Android" : device === "ios" ? "Get Pulse for iPhone / iPad" : "View Pulse downloads";
+  const install = () => { window.location.href = RELEASES; };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/55 backdrop-blur-md">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
       <div className="relative w-full max-w-md rounded-[2rem] border border-white/15 bg-background/95 shadow-2xl p-6 sm:p-7">
         <button aria-label="Close" onClick={() => setOpen(false)} className="absolute right-4 top-4 p-2 rounded-full hover:bg-secondary/70 text-muted-foreground"><X className="w-5 h-5" /></button>
         <div className="w-16 h-16 rounded-2xl bg-primary/15 grid place-items-center mb-5 shadow-inner"><Download className="w-8 h-8 text-primary" /></div>
-        <h2 className="text-2xl font-bold">Get Pulse on your device</h2>
-        <p className="mt-2 text-sm text-muted-foreground">Install Pulse like an app for a faster, cleaner experience. Your account and messages stay with your Pulse account.</p>
+        <h2 className="text-2xl font-bold">Get the Pulse app</h2>
+        <p className="mt-2 text-sm text-muted-foreground">Use Pulse as a real app with its own window, icon and launcher entry — no browser tab required.</p>
         <div className="grid grid-cols-2 gap-3 mt-5">
-          <div className="rounded-2xl border border-border bg-secondary/20 p-4"><MonitorSmartphone className="w-5 h-5 text-primary mb-2" /><p className="font-medium text-sm">Computer</p><p className="text-xs text-muted-foreground mt-1">Windows, macOS and Linux</p></div>
-          <div className="rounded-2xl border border-border bg-secondary/20 p-4"><Smartphone className="w-5 h-5 text-primary mb-2" /><p className="font-medium text-sm">Mobile</p><p className="text-xs text-muted-foreground mt-1">Android, iPhone and iPad</p></div>
+          <div className="rounded-2xl border border-border bg-secondary/20 p-4"><Monitor className="w-5 h-5 text-primary mb-2" /><p className="font-medium text-sm">Desktop</p><p className="text-xs text-muted-foreground mt-1">Windows · macOS · Linux</p></div>
+          <div className="rounded-2xl border border-border bg-secondary/20 p-4"><Smartphone className="w-5 h-5 text-primary mb-2" /><p className="font-medium text-sm">Mobile</p><p className="text-xs text-muted-foreground mt-1">Android · iPhone · iPad</p></div>
         </div>
-        {ios ? (
-          <div className="mt-5 rounded-2xl bg-primary/8 border border-primary/15 p-4 text-sm"><p className="font-semibold">Install on iPhone or iPad</p><p className="text-muted-foreground mt-1">Tap <b>Share</b> in Safari, then choose <b>Add to Home Screen</b>. Pulse will open from your Home Screen like an app.</p></div>
-        ) : (
-          <p className="mt-5 text-xs text-muted-foreground">Your browser will show its normal install confirmation when supported. Otherwise use the browser's <b>Install app</b>, <b>Add to Home screen</b>, or <b>Create shortcut</b> option.</p>
-        )}
-        <div className="flex gap-3 mt-6">{!ios && <Button onClick={install} className="flex-1"><Download className="w-4 h-4 mr-2" />Install Pulse</Button>}<Button variant="outline" onClick={() => setOpen(false)} className={ios ? "w-full" : "flex-1"}>Not now</Button></div>
+        <div className="mt-5 rounded-2xl bg-primary/8 border border-primary/15 p-4 text-sm"><p className="font-semibold">Your device: {device === "ios" ? "iPhone / iPad" : device === "android" ? "Android" : device === "mac" ? "macOS" : device === "windows" ? "Windows" : device === "linux" ? "Linux" : "Computer"}</p><p className="text-muted-foreground mt-1">Download the native Pulse build for your platform from the official releases.</p></div>
+        <div className="flex gap-3 mt-6"><Button onClick={install} className="flex-1"><Download className="w-4 h-4 mr-2" />{label}</Button><Button variant="outline" onClick={() => setOpen(false)}>Not now</Button></div>
+        <p className="text-[11px] text-muted-foreground text-center mt-4">Pulse also remains available in your browser.</p>
       </div>
     </div>
   );
