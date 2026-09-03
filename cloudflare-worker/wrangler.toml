@@ -1,0 +1,12 @@
+name = "pulse-api"
+main = "src/index.ts"
+compatibility_date = "2026-08-18"
+
+[vars]
+CORS_ORIGIN = "https://joelengelman.github.io"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "pulse-db"
+database_id = "f7e9b0fa-bf17-42e9-b992-76353112168c"
+migrations_dir = "migrations"
