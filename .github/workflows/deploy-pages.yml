@@ -42,8 +42,13 @@ jobs:
           NODE_ENV: production
           BASE_PATH: /Pulse/
 
-      - name: Add SPA fallback
-        run: cp artifacts/chat-app/dist/public/index.html artifacts/chat-app/dist/public/404.html
+      - name: Verify Pages entrypoint
+        run: |
+          test -f artifacts/chat-app/dist/public/index.html
+          cp artifacts/chat-app/dist/public/index.html artifacts/chat-app/dist/public/404.html
+          touch artifacts/chat-app/dist/public/.nojekyll
+          echo "Pages artifact contents:"
+          find artifacts/chat-app/dist/public -maxdepth 2 -type f | sort | head -100
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
