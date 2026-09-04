@@ -8,6 +8,7 @@ import safetyRouter from "./safety";
 import notificationsRouter from "./notifications";
 import communitiesRouter from "./communities";
 import followsRouter from "./follows";
+import groupsRouter from "./groups";
 
 const router: IRouter = Router();
 router.use(healthRouter);
@@ -19,4 +20,5 @@ router.use(safetyRouter);
 router.use(notificationsRouter);
 router.use(communitiesRouter);
 router.use(followsRouter);
+router.use(groupsRouter);
 export default router;
