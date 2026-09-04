@@ -17,13 +17,17 @@ const Avatar = React.forwardRef<
 ))
 Avatar.displayName = AvatarPrimitive.Root.displayName
 
+const LEGACY_AVATAR_URLS = new Set([
+  "https://res.cloudinary.com/dtz0urit6/image/upload/q_auto:best,f_jpg/cloudinary-tools-uploads/kcaab9mudc193lbj2mno",
+])
+
 function getSyncedAvatarUrl(src: string | undefined) {
   if (!src || typeof window === "undefined") return src
   try {
     const current = localStorage.getItem("pulse-my-avatar-current")
     if (!current || current === src) return src
     const history: string[] = JSON.parse(localStorage.getItem("pulse-my-avatar-history") || "[]")
-    return history.includes(src) ? current : src
+    return LEGACY_AVATAR_URLS.has(src) || history.includes(src) ? current : src
   } catch {
     return src
   }
