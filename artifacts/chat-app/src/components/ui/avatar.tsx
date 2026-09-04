@@ -17,16 +17,40 @@ const Avatar = React.forwardRef<
 ))
 Avatar.displayName = AvatarPrimitive.Root.displayName
 
+function getSyncedAvatarUrl(src: string | undefined) {
+  if (!src || typeof window === "undefined") return src
+  try {
+    const current = localStorage.getItem("pulse-my-avatar-current")
+    if (!current || current === src) return src
+    const history: string[] = JSON.parse(localStorage.getItem("pulse-my-avatar-history") || "[]")
+    return history.includes(src) ? current : src
+  } catch {
+    return src
+  }
+}
+
 const AvatarImage = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Image>,
   React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Image>
->(({ className, ...props }, ref) => (
-  <AvatarPrimitive.Image
-    ref={ref}
-    className={cn("aspect-square h-full w-full object-cover", className)}
-    {...props}
-  />
-))
+>(({ className, src, ...props }, ref) => {
+  const [resolvedSrc, setResolvedSrc] = React.useState(() => getSyncedAvatarUrl(typeof src === "string" ? src : undefined))
+
+  React.useEffect(() => {
+    const update = () => setResolvedSrc(getSyncedAvatarUrl(typeof src === "string" ? src : undefined))
+    update()
+    window.addEventListener("pulse-avatar-updated", update)
+    return () => window.removeEventListener("pulse-avatar-updated", update)
+  }, [src])
+
+  return (
+    <AvatarPrimitive.Image
+      ref={ref}
+      src={resolvedSrc}
+      className={cn("aspect-square h-full w-full object-cover", className)}
+      {...props}
+    />
+  )
+})
 AvatarImage.displayName = AvatarPrimitive.Image.displayName
 
 const AvatarFallback = React.forwardRef<
