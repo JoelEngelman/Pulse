@@ -5,14 +5,16 @@ import usersRouter from "./users";
 import conversationsRouter from "./conversations";
 import messagesRouter from "./messages";
 import safetyRouter from "./safety";
+import notificationsRouter from "./notifications";
+import communitiesRouter from "./communities";
 
 const router: IRouter = Router();
-
 router.use(healthRouter);
 router.use(authRouter);
 router.use(usersRouter);
 router.use(conversationsRouter);
 router.use(messagesRouter);
 router.use(safetyRouter);
-
+router.use(notificationsRouter);
+router.use(communitiesRouter);
 export default router;
