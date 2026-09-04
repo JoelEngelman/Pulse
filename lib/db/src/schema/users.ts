@@ -12,6 +12,8 @@ export const usersTable = pgTable("users", {
   isOnline: boolean("is_online").notNull().default(false),
   lastSeen: timestamp("last_seen", { withTimezone: true }).notNull().defaultNow(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  messageSearchOnly: boolean("message_search_only").notNull().default(false),
+  discoverable: boolean("discoverable").notNull().default(true),
 });
 
 export const insertUserSchema = createInsertSchema(usersTable).omit({
