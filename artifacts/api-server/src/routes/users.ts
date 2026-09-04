@@ -14,7 +14,7 @@ router.get("/users", requireAuth, async (req, res) => {
   if (search.length < 2) { res.json([]); return; }
   const term = `%${search}%`; const prefix = `${search}%`; const normalizedSearch = search.toLowerCase();
   const users = await db.select().from(usersTable).where(and(eq(usersTable.discoverable, true), ne(usersTable.id, me), or(ilike(usersTable.username, term), ilike(usersTable.displayName, term))))
-    .orderBy(sql<number>`CASE WHEN lower(${usersTable.username}) = ${normalizedSearch} THEN 0 WHEN lower(${usersTable.displayName}) = ${normalizedSearch} THEN 1 WHEN lower(${usersTable.username}) LIKE lower(${prefix}) THEN 2 WHEN lower(${usersTable.displayName}) LIKE lower(${prefix}) THEN 3 ELSE 4 END`, sql`lower(${usersTable.username}) ASC`).limit(20);
+    .orderBy(sql<number>`CASE WHEN lower(${usersTable.username}) = ${normalizedSearch} THEN 0 WHEN lower(${usersTable.displayName}) = ${normalizedSearch} THEN 1 WHEN lower(${usersTable.username}) LIKE lower(${prefix}) THEN 2 WHEN lower(${usersTable.displayName}) LIKE lower(${prefix}) THEN 3 ELSE 4 END`, sql<number>`GREATEST(similarity(lower(${usersTable.username}), ${normalizedSearch}), similarity(lower(${usersTable.displayName}), ${normalizedSearch})) DESC`, sql`lower(${usersTable.username}) ASC`).limit(20);
   res.json(users.map(toPublicUser));
 });
 
