@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { MessageSquare, Users, Search, User as UserIcon, LogOut, Zap, Sun, Moon, Home as HomeIcon, Sparkles, Trophy, Settings as SettingsIcon, MoreHorizontal, X, LifeBuoy, Download } from "lucide-react";
+import { MessageSquare, Users, Search, User as UserIcon, LogOut, Zap, Sun, Moon, Home as HomeIcon, Sparkles, Trophy, Settings as SettingsIcon, MoreHorizontal, X, LifeBuoy, Download, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
 import { useLogout, useHeartbeat } from "@workspace/api-client-react";
@@ -17,8 +17,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(()=>{setMoreOpen(false)},[location]);
   const handleLogout=()=>logout.mutate(undefined,{onSuccess:()=>{queryClient.clear();setLocation("/login")}});
   const openDownloads=()=>window.dispatchEvent(new Event("pulse:download"));
-  const mainItems=[{href:"/feed",icon:HomeIcon,label:"Home"},{href:"/social",icon:Sparkles,label:"Pulse Social"},{href:"/conversations",icon:MessageSquare,label:"Chat"},{href:"/users",icon:Users,label:"Directory"}];
-  const moreItems=[{href:"/search",icon:Search,label:"Search"},{href:"/profile",icon:UserIcon,label:"Profile"},{href:"/settings",icon:SettingsIcon,label:"Settings"},{href:"/badges",icon:Trophy,label:"Badges"}];
+  const mainItems=[{href:"/feed",icon:HomeIcon,label:"Home"},{href:"/social",icon:Sparkles,label:"Pulse Social"},{href:"/conversations",icon:MessageSquare,label:"Chat"},{href:"/users",icon:Users,label:"Discover"}];
+  const moreItems=[{href:"/search",icon:Search,label:"Search"},{href:"/profile",icon:UserIcon,label:"Profile"},{href:"/settings",icon:SettingsIcon,label:"Settings"},{href:"/safety",icon:ShieldCheck,label:"Safety & Privacy"},{href:"/badges",icon:Trophy,label:"Badges"}];
   const NavItem=({item}:{item:any})=>{const active=location.startsWith(item.href);return <Link href={item.href} className={`flex items-center justify-center lg:justify-start gap-3 p-3 rounded-xl transition-all outline-none cursor-pointer ${active?"bg-primary text-primary-foreground shadow-[0_0_15px_rgba(0,200,200,0.15)]":"text-muted-foreground hover:bg-secondary hover:text-foreground"}`} title={item.label}><item.icon className="w-[21px] h-[21px] flex-shrink-0"/><span className="font-medium hidden lg:block">{item.label}</span></Link>};
   return <div className="flex h-[100dvh] w-full min-h-0 bg-background overflow-hidden text-foreground">
     <nav className="w-[72px] lg:w-64 border-r border-border bg-card flex flex-col py-4 px-3 lg:px-4 flex-shrink-0 z-10 overflow-y-auto custom-scrollbar">
