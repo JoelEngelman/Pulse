@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, usersTable } from "@workspace/db";
-import { eq, ilike, ne, or } from "drizzle-orm";
+import { eq, ilike, ne, or, sql, and } from "drizzle-orm";
 import { requireAuth } from "../lib/auth";
 import { toPublicUser } from "../lib/userHelpers";
 import { UpdateMeBody } from "@workspace/api-zod";
@@ -8,24 +8,42 @@ import { UpdateMeBody } from "@workspace/api-zod";
 const router = Router();
 
 router.get("/users", requireAuth, async (req, res) => {
-  const search = req.query["search"] as string | undefined;
+  const rawSearch = typeof req.query["search"] === "string" ? req.query["search"] : "";
+  const search = rawSearch.trim().replace(/[%_\\]/g, "");
   const me = req.session.userId!;
 
-  let users;
-  if (search && search.trim()) {
-    users = await db
-      .select()
-      .from(usersTable)
-      .where(
-        or(
-          ilike(usersTable.username, `%${search}%`),
-          ilike(usersTable.displayName, `%${search}%`),
-        ),
-      )
-      .limit(20);
-  } else {
-    users = await db.select().from(usersTable).where(ne(usersTable.id, me)).limit(30);
+  // There is intentionally no global directory. People must actively search
+  // for another account before Pulse returns discoverable users.
+  if (search.length < 2) {
+    res.json([]);
+    return;
   }
+
+  const term = `%${search}%`;
+  const prefix = `${search}%`;
+  const normalizedSearch = search.toLowerCase();
+
+  const users = await db
+    .select()
+    .from(usersTable)
+    .where(and(
+      ne(usersTable.id, me),
+      or(
+        ilike(usersTable.username, term),
+        ilike(usersTable.displayName, term),
+      ),
+    ))
+    .orderBy(
+      sql<number>`CASE
+        WHEN lower(${usersTable.username}) = ${normalizedSearch} THEN 0
+        WHEN lower(${usersTable.displayName}) = ${normalizedSearch} THEN 1
+        WHEN lower(${usersTable.username}) LIKE lower(${prefix}) THEN 2
+        WHEN lower(${usersTable.displayName}) LIKE lower(${prefix}) THEN 3
+        ELSE 4
+      END`,
+      sql`lower(${usersTable.username}) ASC`,
+    )
+    .limit(20);
 
   res.json(users.map(toPublicUser));
 });
