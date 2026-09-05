@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, timestamp, unique } from "drizzle-orm/pg-core";
+import { index, integer, pgTable, serial, text, timestamp, unique } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
 
 export const communitiesTable = pgTable("communities", {
@@ -15,7 +15,11 @@ export const communityMembersTable = pgTable("community_members", {
   userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   role: text("role").notNull().default("member"),
   joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [unique("uq_community_member").on(t.communityId, t.userId)]);
+}, (t) => [
+  unique("uq_community_member").on(t.communityId, t.userId),
+  index("idx_community_members_community").on(t.communityId),
+  index("idx_community_members_user").on(t.userId),
+]);
 
 export type Community = typeof communitiesTable.$inferSelect;
 export type CommunityMember = typeof communityMembersTable.$inferSelect;

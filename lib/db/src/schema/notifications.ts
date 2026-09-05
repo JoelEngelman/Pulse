@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, boolean, timestamp } from "drizzle-orm/pg-core";
+import { index, integer, pgTable, serial, text, timestamp, boolean } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
 
 export const notificationsTable = pgTable("notifications", {
@@ -10,6 +10,9 @@ export const notificationsTable = pgTable("notifications", {
   link: text("link"),
   read: boolean("read").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  index("idx_notifications_user_created").on(t.userId, t.createdAt),
+  index("idx_notifications_user_read").on(t.userId, t.read),
+]);
 
 export type Notification = typeof notificationsTable.$inferSelect;

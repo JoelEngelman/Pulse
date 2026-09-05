@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, timestamp, unique } from "drizzle-orm/pg-core";
+import { index, integer, pgTable, serial, text, timestamp, unique } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
 
 export const followsTable = pgTable("follows", {
@@ -6,6 +6,10 @@ export const followsTable = pgTable("follows", {
   followerId: integer("follower_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   followingId: integer("following_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [unique("uq_follow").on(t.followerId, t.followingId)]);
+}, (t) => [
+  unique("uq_follow").on(t.followerId, t.followingId),
+  index("idx_follows_follower").on(t.followerId),
+  index("idx_follows_following").on(t.followingId),
+]);
 
 export type Follow = typeof followsTable.$inferSelect;
