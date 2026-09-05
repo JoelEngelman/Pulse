@@ -7,9 +7,11 @@ import { useLocation } from "wouter";
 const AI_API = "https://lbphvoonoxpbvpovozuo.supabase.co/functions/v1/pulse-ai";
 const TOKEN_KEY = "pulse-supabase-access-token";
 
+type Message = { role: "user" | "assistant"; content: string };
+
 export default function AI() {
   const [, setLocation] = useLocation();
-  const [messages, setMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -21,8 +23,14 @@ export default function AI() {
   const send = async () => {
     const text = input.trim();
     if (!text || loading) return;
+
     setInput("");
     setError("");
+
+    // Snapshot the conversation BEFORE adding the new user message so the
+    // backend receives the actual conversation history, not the current
+    // message twice.
+    const history = messages.slice(-20);
     setMessages((m) => [...m, { role: "user", content: text }]);
     setLoading(true);
 
@@ -36,10 +44,15 @@ export default function AI() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({
+          message: text,
+          history,
+        }),
       });
+
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error || "Pulse AI is temporarily unavailable.");
+
       setMessages((m) => [...m, { role: "assistant", content: d.response || "I couldn't generate a response." }]);
     } catch (e: any) {
       setError(e.message || "Pulse AI is temporarily unavailable.");
