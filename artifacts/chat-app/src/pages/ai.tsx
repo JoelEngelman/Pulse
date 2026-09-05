@@ -1,66 +1,28 @@
-import { useEffect, useState } from "react";
-import { ArrowLeft, Bot, Send, Sparkles, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, Bot, Send, Sparkles, Loader2, Plus, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
 
-const AI_API = "https://lbphvoonoxpbvpovozuo.supabase.co/functions/v1/pulse-ai";
-const TOKEN_KEY = "pulse-supabase-access-token";
+const AI_API="https://lbphvoonoxpbvpovozuo.supabase.co/functions/v1/pulse-ai";
+const TOKEN_KEY="pulse-supabase-access-token";
+const STORAGE_KEY="pulse-ai-chats";
+type Message={role:"user"|"assistant";content:string};
+type Chat={id:string;title:string;messages:Message[];updatedAt:number};
+const welcome:Message={role:"assistant",content:"Hey! I'm Pulse AI. Ask me anything, or use me to rewrite, brainstorm, summarize, or help with a Pulse post."};
+function makeChat():Chat{return{id:crypto.randomUUID(),title:"New chat",messages:[welcome],updatedAt:Date.now()}};
+function loadChats():Chat[]{try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");if(Array.isArray(x)&&x.length)return x;}catch{}return [makeChat()];}
 
-type Message = { role: "user" | "assistant"; content: string };
-
-export default function AI() {
-  const [, setLocation] = useLocation();
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    setMessages([{ role: "assistant", content: "Hey! I'm Pulse AI. Ask me anything, or use me to rewrite, brainstorm, summarize, or help with a Pulse post." }]);
-  }, []);
-
-  const send = async () => {
-    const text = input.trim();
-    if (!text || loading) return;
-
-    setInput("");
-    setError("");
-
-    // Snapshot the conversation BEFORE adding the new user message so the
-    // backend receives the actual conversation history, not the current
-    // message twice.
-    const history = messages.slice(-20);
-    setMessages((m) => [...m, { role: "user", content: text }]);
-    setLoading(true);
-
-    try {
-      const token = localStorage.getItem(TOKEN_KEY);
-      if (!token) throw new Error("Please sign in to use Pulse AI.");
-
-      const r = await fetch(AI_API, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          message: text,
-          history,
-        }),
-      });
-
-      const d = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(d.error || "Pulse AI is temporarily unavailable.");
-
-      setMessages((m) => [...m, { role: "assistant", content: d.response || "I couldn't generate a response." }]);
-    } catch (e: any) {
-      setError(e.message || "Pulse AI is temporarily unavailable.");
-      setMessages((m) => [...m, { role: "assistant", content: "I couldn't reach Pulse AI right now. Try again in a moment." }]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return <div className="h-full overflow-y-auto"><div className="max-w-3xl mx-auto px-4 py-5 md:py-8"><button onClick={() => setLocation("/feed")} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-5 cursor-pointer"><ArrowLeft className="w-4 h-4" />Back</button><div className="flex items-center gap-3 mb-6"><div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary grid place-items-center"><Bot className="w-6 h-6" /></div><div><h1 className="text-2xl font-bold">Pulse AI</h1><p className="text-sm text-muted-foreground">Your built-in AI assistant.</p></div></div><div className="space-y-3 mb-5">{messages.map((m, i) => <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}><div className={`max-w-[85%] rounded-2xl px-4 py-3 whitespace-pre-wrap text-sm leading-6 ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-card border border-border"}`}>{m.content}</div></div>)}</div>{error && <div className="mb-3 text-sm text-destructive">{error}</div>}<div className="sticky bottom-2 bg-card border border-border rounded-2xl p-2 shadow-lg"><Textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} placeholder="Message Pulse AI…" className="border-0 resize-none min-h-[52px] focus-visible:ring-0" maxLength={12000} /><div className="flex items-center justify-between px-2"><span className="text-[11px] text-muted-foreground">Shift + Enter for a new line</span><Button onClick={send} disabled={loading || !input.trim()} className="cursor-pointer">{loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}Send</Button></div></div><div className="flex flex-wrap gap-2 mt-4">{["Help me brainstorm a post", "Rewrite this more naturally", "Summarize this", "Give me some ideas"].map(x => <button key={x} onClick={() => setInput(x)} className="text-xs px-3 py-2 rounded-full border border-border hover:bg-secondary cursor-pointer"><Sparkles className="w-3 h-3 inline mr-1" />{x}</button>)}</div></div></div>;
+export default function AI(){
+ const [,setLocation]=useLocation();const [chats,setChats]=useState<Chat[]>(loadChats);const [activeId,setActiveId]=useState("");const [input,setInput]=useState("");const [loading,setLoading]=useState(false);const [error,setError]=useState("");const [editing,setEditing]=useState(false);const [title,setTitle]=useState("");
+ useEffect(()=>{if(!activeId&&chats[0])setActiveId(chats[0].id)},[activeId,chats]);
+ useEffect(()=>{localStorage.setItem(STORAGE_KEY,JSON.stringify(chats.slice(0,20)))},[chats]);
+ const active=useMemo(()=>chats.find(c=>c.id===activeId)||chats[0], [chats,activeId]);
+ const messages=active?.messages||[];
+ const newChat=()=>{const c=makeChat();setChats(x=>[c,...x]);setActiveId(c.id);setInput("");setError("")};
+ const deleteChat=()=>{if(!active)return;const next=chats.filter(c=>c.id!==active.id);const safe=next.length?next:[makeChat()];setChats(safe);setActiveId(safe[0].id)};
+ const saveTitle=()=>{if(!active)return;const t=title.trim().slice(0,60)||"New chat";setChats(x=>x.map(c=>c.id===active.id?{...c,title:t}:c));setEditing(false)};
+ const send=async()=>{const text=input.trim();if(!text||loading||!active)return;setInput("");setError("");const history=messages.slice(-20);const userMsg={role:"user" as const,content:text};setChats(x=>x.map(c=>c.id===active.id?{...c,messages:[...c.messages,userMsg],title:c.title==="New chat"?text.slice(0,45):c.title,updatedAt:Date.now()}:c));setLoading(true);try{const token=localStorage.getItem(TOKEN_KEY);if(!token)throw new Error("Please sign in to use Pulse AI.");const r=await fetch(AI_API,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({message:text,history})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||"Pulse AI is temporarily unavailable.");setChats(x=>x.map(c=>c.id===active.id?{...c,messages:[...c.messages,{role:"assistant",content:d.response||"I couldn't generate a response."}],updatedAt:Date.now()}:c));}catch(e:any){setError(e.message||"Pulse AI is temporarily unavailable.");setChats(x=>x.map(c=>c.id===active.id?{...c,messages:[...c.messages,{role:"assistant",content:"I couldn't reach Pulse AI right now. Try again in a moment."}]}:c));}finally{setLoading(false)}};
+ return <div className="h-full flex overflow-hidden"><aside className="hidden md:flex w-64 border-r border-border bg-card/30 flex-col"><div className="p-3 border-b border-border"><Button className="w-full" variant="outline" onClick={newChat}><Plus className="w-4 h-4 mr-2"/>New chat</Button></div><div className="flex-1 overflow-y-auto p-2 space-y-1">{chats.map(c=><button key={c.id} onClick={()=>setActiveId(c.id)} className={`w-full text-left px-3 py-2.5 rounded-xl text-sm truncate ${c.id===active?.id?"bg-secondary font-medium":"hover:bg-secondary/60 text-muted-foreground"}`}>{c.title}</button>)}</div></aside><main className="flex-1 h-full overflow-y-auto"><div className="max-w-3xl mx-auto px-4 py-5 md:py-8"><div className="flex items-center justify-between mb-5"><button onClick={()=>setLocation("/feed")} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer"><ArrowLeft className="w-4 h-4"/>Back</button><div className="flex gap-2"><Button variant="outline" size="sm" onClick={newChat}><Plus className="w-4 h-4 mr-1"/>New chat</Button><Button variant="ghost" size="icon" onClick={deleteChat} title="Delete chat"><Trash2 className="w-4 h-4"/></Button></div></div><div className="flex items-center gap-3 mb-6"><div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary grid place-items-center"><Bot className="w-6 h-6"/></div><div className="min-w-0 flex-1">{editing?<div className="flex gap-2"><Input value={title} onChange={e=>setTitle(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveTitle()} autoFocus/><Button size="sm" onClick={saveTitle}>Save</Button></div>:<button onClick={()=>{setTitle(active?.title||"New chat");setEditing(true)}} className="group text-left"><h1 className="text-2xl font-bold truncate">{active?.title||"Pulse AI"}<Pencil className="inline w-3.5 h-3.5 ml-2 opacity-0 group-hover:opacity-60"/></h1><p className="text-sm text-muted-foreground">Pulse AI · private to this browser</p></button>}</div></div><div className="space-y-3 mb-5">{messages.map((m,i)=><div key={i} className={`flex ${m.role==="user"?"justify-end":"justify-start"}`}><div className={`max-w-[85%] rounded-2xl px-4 py-3 whitespace-pre-wrap text-sm leading-6 ${m.role==="user"?"bg-primary text-primary-foreground":"bg-card border border-border"}`}>{m.content}</div></div>)}</div>{loading&&<div className="flex items-center gap-2 text-sm text-muted-foreground mb-3"><Loader2 className="w-4 h-4 animate-spin"/>Pulse AI is thinking…</div>}{error&&<div className="mb-3 text-sm text-destructive">{error}</div>}<div className="sticky bottom-2 bg-card border border-border rounded-2xl p-2 shadow-lg"><Textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}}} placeholder="Message Pulse AI…" className="border-0 resize-none min-h-[52px] focus-visible:ring-0" maxLength={12000}/><div className="flex items-center justify-between px-2"><span className="text-[11px] text-muted-foreground">Shift + Enter for a new line</span><Button onClick={send} disabled={loading||!input.trim()} className="cursor-pointer"><Send className="w-4 h-4 mr-2"/>Send</Button></div></div><div className="flex flex-wrap gap-2 mt-4">{["Help me brainstorm a post","Rewrite this more naturally","Summarize this","Give me some ideas"].map(x=><button key={x} onClick={()=>setInput(x)} className="text-xs px-3 py-2 rounded-full border border-border hover:bg-secondary cursor-pointer"><Sparkles className="w-3 h-3 inline mr-1"/>{x}</button>)}</div></div></main></div>;
 }
