@@ -1,9 +1,12 @@
 name = "pulse-api"
-main = "src/index.ts"
+main = "src/entry.ts"
 compatibility_date = "2026-08-18"
 
 [vars]
 CORS_ORIGIN = "https://joelengelman.github.io"
+
+[ai]
+binding = "AI"
 
 [[d1_databases]]
 binding = "DB"
