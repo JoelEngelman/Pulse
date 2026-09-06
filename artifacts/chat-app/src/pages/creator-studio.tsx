@@ -1,195 +1,24 @@
-import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, ImagePlus, Loader2, Send, Music2, BarChart3 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowLeft, BarChart3, CheckCircle2, FileText, ImagePlus, Loader2, PenSquare, Trash2, TrendingUp } from "lucide-react";
 import { useLocation } from "wouter";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useGetMe } from "@workspace/api-client-react";
 
-const API = "https://pulse-api-proxy.joeldavidengelman.workers.dev";
+const API="https://lbphvoonoxpbvpovozuo.supabase.co/functions/v1/pulse-api";
+const TOKEN="pulse-supabase-access-token";
+async function api(path:string,options:RequestInit={}){const token=localStorage.getItem(TOKEN);const r=await fetch(`${API}${path}`,{...options,headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`,...(options.headers||{})}});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||`Request failed (${r.status})`);return d;}
+function formatDate(v:string){return new Date(v).toLocaleString();}
 
-async function api(path: string, options: RequestInit = {}) {
-  const response = await fetch(`${API}${path}`, {
-    ...options,
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
-  return data;
-}
-
-async function imageData(file: File) {
-  const bitmap = await createImageBitmap(file);
-  const max = 1400;
-  const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("Could not process that image.");
-  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
-  return canvas.toDataURL("image/jpeg", 0.8);
-}
-
-export default function CreatorStudio() {
-  const [, setLocation] = useLocation();
-  const { data: user } = useGetMe();
-  const [content, setContent] = useState("");
-  const [image, setImage] = useState("");
-  const [posts, setPosts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-
-  const load = useCallback(async () => {
-    try {
-      const all = await api("/api/feed?mode=for-you");
-      setPosts(all.filter((post: any) => String(post.user?.id) === String(user?.id)));
-      setError("");
-    } catch (err: any) {
-      setError(err.message || "Could not load your posts.");
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (user) load();
-  }, [user, load]);
-
-  const publish = async () => {
-    if (!content.trim() && !image) return;
-    setSaving(true);
-    setError("");
-    try {
-      const post = await api("/api/posts", {
-        method: "POST",
-        body: JSON.stringify({ content: content.trim(), imageUrl: image || null }),
-      });
-      setPosts((current) => [post, ...current]);
-      setContent("");
-      setImage("");
-    } catch (err: any) {
-      setError(err.message || "Could not publish your post.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="h-full overflow-y-auto">
-      <div className="max-w-3xl mx-auto px-4 py-5 md:py-8">
-        <button
-          onClick={() => setLocation("/feed")}
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-5 cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </button>
-
-        <div className="flex items-center gap-3 mb-7">
-          <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary grid place-items-center">
-            <BarChart3 className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">Creator Studio</h1>
-            <p className="text-sm text-muted-foreground">Create and manage your Pulse Social posts.</p>
-          </div>
-        </div>
-
-        <section className="bg-card border border-border rounded-2xl p-4 mb-6">
-          <div className="flex items-center gap-3 mb-3">
-            <Avatar className="w-10 h-10">
-              <AvatarImage src={user?.avatarUrl || ""} />
-              <AvatarFallback>{user?.displayName?.slice(0, 1) || "P"}</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-semibold">{user?.displayName}</p>
-              <p className="text-xs text-muted-foreground">@{user?.username}</p>
-            </div>
-          </div>
-
-          <Textarea
-            value={content}
-            onChange={(event) => setContent(event.target.value)}
-            maxLength={500}
-            placeholder="Create something for Pulse…"
-            className="min-h-28 resize-none"
-          />
-
-          {image && <img src={image} alt="Post preview" className="mt-3 max-h-80 w-full object-cover rounded-xl" />}
-
-          <div className="flex flex-wrap items-center gap-2 mt-3">
-            <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-secondary text-sm">
-              <ImagePlus className="w-4 h-4" />
-              Photo
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={async (event) => {
-                  const file = event.target.files?.[0];
-                  if (file) {
-                    try {
-                      setImage(await imageData(file));
-                      setError("");
-                    } catch (err: any) {
-                      setError(err.message || "Could not process that image.");
-                    }
-                  }
-                  event.currentTarget.value = "";
-                }}
-              />
-            </label>
-
-            <span className="inline-flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
-              <Music2 className="w-4 h-4" />
-              Music is available in Pulse Social
-            </span>
-
-            <Button
-              onClick={publish}
-              disabled={saving || (!content.trim() && !image)}
-              className="ml-auto cursor-pointer"
-            >
-              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-              Publish
-            </Button>
-          </div>
-
-          {error && <p className="text-sm text-destructive mt-3">{error}</p>}
-        </section>
-
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold">Your posts</h2>
-          <span className="text-sm text-muted-foreground">{posts.length} loaded</span>
-        </div>
-
-        {loading ? (
-          <Loader2 className="animate-spin" />
-        ) : posts.length ? (
-          posts.map((post) => (
-            <article key={post.id} className="bg-card border border-border rounded-2xl p-4 mb-3">
-              <p className="text-sm whitespace-pre-wrap">{post.content}</p>
-              {post.media?.image && (
-                <img src={post.media.image} alt="" className="mt-3 max-h-80 w-full object-cover rounded-xl" />
-              )}
-              <p className="text-xs text-muted-foreground mt-3">
-                {post.createdAt ? new Date(post.createdAt).toLocaleString() : ""} · {post.likeCount || 0} likes · {post.commentCount || 0} comments
-              </p>
-            </article>
-          ))
-        ) : (
-          <div className="border border-dashed border-border rounded-2xl p-8 text-center text-sm text-muted-foreground">
-            You haven't published anything yet.
-          </div>
-        )}
-      </div>
-    </div>
-  );
+export default function CreatorStudio(){const[,setLocation]=useLocation();const{data:user}=useGetMe();const[content,setContent]=useState("");const[image,setImage]=useState("");const[posts,setPosts]=useState<any[]>([]);const[draft,setDraft]=useState(()=>localStorage.getItem("pulse-creator-draft")||"");const[loading,setLoading]=useState(true);const[publishing,setPublishing]=useState(false);const[deleting,setDeleting]=useState("");const[error,setError]=useState("");
+const load=useCallback(async()=>{setLoading(true);try{const all=await api("/posts");setPosts((all??[]).filter((p:any)=>String(p.userId)===String(user?.id)));setError("");}catch(e:any){setError(e.message||"Could not load your posts.");}finally{setLoading(false);}},[user?.id]);
+useEffect(()=>{if(user)load();},[user,load]);useEffect(()=>{const t=setTimeout(()=>localStorage.setItem("pulse-creator-draft",content),300);return()=>clearTimeout(t);},[content]);useEffect(()=>{if(!content&&draft)setContent(draft);},[draft]);
+const publish=async()=>{if(!content.trim())return;setPublishing(true);setError("");try{const post=await api("/posts",{method:"POST",body:JSON.stringify({content:content.trim()})});setPosts(p=>[post,...p]);setContent("");localStorage.removeItem("pulse-creator-draft");}catch(e:any){setError(e.message||"Could not publish.");}finally{setPublishing(false);}};
+const remove=async(id:string)=>{setDeleting(id);try{await api(`/posts/${id}`,{method:"DELETE"});setPosts(p=>p.filter(x=>x.id!==id));}catch(e:any){setError(e.message||"Could not delete post.");}finally{setDeleting("");}};
+const stats=useMemo(()=>({posts:posts.length,likes:posts.reduce((n,p)=>n+(p.likeCount||0),0),comments:posts.reduce((n,p)=>n+(p.commentCount||0),0)}),[posts]);
+return <div className="h-full overflow-y-auto"><div className="max-w-5xl mx-auto px-4 py-6 md:py-10"><button onClick={()=>setLocation("/feed")} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-5"><ArrowLeft className="w-4 h-4"/>Back to Pulse</button><div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-7"><div><div className="inline-flex items-center gap-2 text-primary text-sm font-semibold mb-2"><PenSquare className="w-4 h-4"/>CREATOR STUDIO</div><h1 className="text-3xl md:text-4xl font-bold tracking-tight">Make something people remember.</h1><p className="text-muted-foreground mt-2">Write, publish and understand how your posts perform.</p></div><div className="flex gap-2 text-xs text-muted-foreground"><span className="rounded-full border border-border px-3 py-1.5">{stats.posts} posts</span><span className="rounded-full border border-border px-3 py-1.5">{stats.likes} likes</span><span className="rounded-full border border-border px-3 py-1.5">{stats.comments} comments</span></div></div>
+<div className="grid lg:grid-cols-[1.3fr_.7fr] gap-5"><section className="rounded-3xl border border-border bg-card/80 shadow-sm overflow-hidden"><div className="p-5 border-b border-border flex items-center gap-3"><Avatar className="w-11 h-11"><AvatarImage src={user?.avatarUrl||""}/><AvatarFallback>{user?.displayName?.slice(0,1)||"P"}</AvatarFallback></Avatar><div><p className="font-semibold">{user?.displayName}</p><p className="text-xs text-muted-foreground">@{user?.username}</p></div><span className="ml-auto text-xs text-muted-foreground">{content.length}/500</span></div><div className="p-5"><Textarea value={content} onChange={e=>setContent(e.target.value)} maxLength={500} placeholder="What's on your mind?" className="min-h-48 border-0 bg-transparent shadow-none focus-visible:ring-0 text-lg resize-none p-0"/>{image&&<img src={image} alt="Preview" className="mt-4 max-h-72 w-full object-cover rounded-2xl"/>}<div className="mt-5 flex items-center gap-2"><label className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-secondary cursor-pointer"><ImagePlus className="w-4 h-4"/>Add photo<input type="file" accept="image/*" className="hidden" onChange={e=>{const f=e.target.files?.[0];if(f){const r=new FileReader();r.onload=()=>setImage(String(r.result));r.readAsDataURL(f);}e.currentTarget.value="";}}/></label><span className="text-xs text-muted-foreground">Drafts save automatically on this device.</span><Button onClick={publish} disabled={publishing||!content.trim()} className="ml-auto">{publishing?<Loader2 className="w-4 h-4 mr-2 animate-spin"/>:<CheckCircle2 className="w-4 h-4 mr-2"/>}{publishing?"Publishing…":"Publish"}</Button></div>{error&&<p className="text-sm text-destructive mt-3">{error}</p>}</div></section>
+<aside className="space-y-5"><div className="rounded-3xl border border-border bg-card/80 p-5"><div className="flex items-center gap-2 mb-4"><TrendingUp className="w-5 h-5 text-primary"/><h2 className="font-semibold">Performance</h2></div><div className="space-y-4"><div><p className="text-3xl font-bold">{stats.likes}</p><p className="text-xs text-muted-foreground">Total likes</p></div><div><p className="text-3xl font-bold">{stats.comments}</p><p className="text-xs text-muted-foreground">Total comments</p></div><div><p className="text-3xl font-bold">{stats.posts?Math.round((stats.likes+stats.comments)/stats.posts):0}</p><p className="text-xs text-muted-foreground">Average interactions / post</p></div></div></div><div className="rounded-3xl border border-border bg-card/80 p-5"><div className="flex items-center gap-2 mb-3"><FileText className="w-5 h-5 text-primary"/><h2 className="font-semibold">Draft</h2></div><p className="text-sm text-muted-foreground">{content?`${content.length} characters ready to publish.`:"Start typing and your draft will be saved automatically."}</p></div></aside></div>
+<div className="mt-7"><div className="flex items-center justify-between mb-3"><h2 className="text-lg font-semibold">Published posts</h2><button onClick={load} className="text-sm text-primary hover:underline">Refresh</button></div>{loading?<div className="py-10 flex justify-center"><Loader2 className="animate-spin"/></div>:posts.length===0?<div className="rounded-3xl border border-dashed border-border p-12 text-center text-muted-foreground"><BarChart3 className="w-8 h-8 mx-auto mb-3"/><p>No posts yet.</p><p className="text-sm mt-1">Your published work will appear here.</p></div>:<div className="space-y-3">{posts.map(p=><article key={p.id} className="rounded-2xl border border-border bg-card/70 p-5"><div className="flex items-start gap-3"><div className="flex-1"><p className="whitespace-pre-wrap text-sm leading-6">{p.content}</p><p className="text-xs text-muted-foreground mt-3">{formatDate(p.createdAt)} · {p.likeCount||0} likes · {p.commentCount||0} comments</p></div><button onClick={()=>remove(p.id)} disabled={deleting===p.id} className="p-2 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10">{deleting===p.id?<Loader2 className="w-4 h-4 animate-spin"/>:<Trash2 className="w-4 h-4"/>}</button></div></article>)}</div>}</div></div></div>;
 }

@@ -1,0 +1,20 @@
+/* Pulse motion layer — intentionally scoped to visual properties only. */
+@keyframes pulse-enter { from { opacity:0; transform:translate3d(0,10px,0) scale(.985); } to { opacity:1; transform:none; } }
+@keyframes pulse-rise { from { opacity:0; transform:translate3d(0,18px,0); } to { opacity:1; transform:none; } }
+@keyframes pulse-soft-pop { 0%{transform:scale(.96);opacity:0} 65%{transform:scale(1.01);opacity:1} 100%{transform:none;opacity:1} }
+@keyframes pulse-sheen { from{transform:translateX(-120%)} to{transform:translateX(120%)} }
+@keyframes pulse-breathe { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-2px)} }
+
+.pulse-page-transition { animation:pulse-enter .42s cubic-bezier(.22,1,.36,1) both; }
+.pulse-page-transition > * { animation:pulse-rise .46s cubic-bezier(.22,1,.36,1) both; }
+.pulse-page-transition button, .pulse-page-transition a, .pulse-page-transition input, .pulse-page-transition textarea, .pulse-page-transition select { transition:transform .18s cubic-bezier(.22,1,.36,1), box-shadow .2s ease, background-color .2s ease, border-color .2s ease, color .2s ease, opacity .2s ease; }
+.pulse-page-transition button:not(:disabled):active { transform:scale(.96); }
+.pulse-page-transition button:not(:disabled):hover { transform:translateY(-1px); }
+.pulse-page-transition input:focus, .pulse-page-transition textarea:focus, .pulse-page-transition select:focus { transform:translateY(-1px); }
+.pulse-page-transition img { transition:transform .35s cubic-bezier(.22,1,.36,1), filter .35s ease; }
+@media (hover:hover) and (pointer:fine) { .pulse-page-transition img:hover { transform:scale(1.015); } }
+.pulse-page-transition [class*="rounded-2xl"], .pulse-page-transition [class*="rounded-3xl"], .pulse-page-transition [class*="rounded-xl"] { transition:transform .24s cubic-bezier(.22,1,.36,1), box-shadow .24s ease, border-color .24s ease; }
+@media (hover:hover) and (pointer:fine) { .pulse-page-transition [class*="rounded-2xl"]:hover, .pulse-page-transition [class*="rounded-3xl"]:hover { transform:translateY(-2px); box-shadow:0 16px 38px rgb(0 0 0 / .09); } }
+.pulse-page-transition [class*="animate-spin"] { will-change:transform; }
+.pulse-page-transition .avatar, .pulse-page-transition [data-avatar] { animation:pulse-soft-pop .42s ease both; }
+@media (prefers-reduced-motion:reduce) { .pulse-page-transition, .pulse-page-transition > *, .pulse-page-transition .avatar, .pulse-page-transition [data-avatar] { animation:none !important; } .pulse-page-transition *, .pulse-page-transition *::before, .pulse-page-transition *::after { scroll-behavior:auto !important; transition-duration:.01ms !important; } }
