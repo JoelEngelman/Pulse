@@ -9,7 +9,7 @@ router.post("/groups", requireAuth, async (req, res) => {
   const me = req.session.userId!;
   const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
   const ids = Array.isArray(req.body?.participantIds)
-    ? req.body.participantIds.map(Number).filter(Number.isInteger)
+    ? req.body.participantIds.map((value: unknown) => Number(value)).filter(Number.isInteger)
     : [];
   const uniqueIds = [...new Set([me, ...ids])];
 
@@ -17,12 +17,21 @@ router.post("/groups", requireAuth, async (req, res) => {
   if (uniqueIds.length < 3) return res.status(400).json({ error: "A group needs at least 3 people." });
   if (uniqueIds.length > 100) return res.status(400).json({ error: "Groups can have up to 100 people." });
 
-  const users = await db.select({ id: usersTable.id }).from(usersTable).where(inArray(usersTable.id, uniqueIds));
-  if (users.length !== uniqueIds.length) return res.status(400).json({ error: "One or more users could not be found." });
+  try {
+    const users = await db.select({ id: usersTable.id }).from(usersTable).where(inArray(usersTable.id, uniqueIds));
+    if (users.length !== uniqueIds.length) return res.status(400).json({ error: "One or more users could not be found." });
 
-  const [conv] = await db.insert(conversationsTable).values({ name, isGroup: 1, createdBy: me }).returning();
-  await db.insert(conversationParticipantsTable).values(uniqueIds.map((userId) => ({ conversationId: conv.id, userId })));
-  res.status(201).json({ id: conv.id, name: conv.name, isGroup: true, participantIds: uniqueIds });
+    const result = await db.transaction(async (tx) => {
+      const [conv] = await tx.insert(conversationsTable).values({ name, isGroup: 1, createdBy: me }).returning();
+      await tx.insert(conversationParticipantsTable).values(uniqueIds.map((userId) => ({ conversationId: conv.id, userId })));
+      return conv;
+    });
+
+    res.status(201).json({ id: result.id, name: result.name, isGroup: true, participantIds: uniqueIds });
+  } catch (error) {
+    console.error("Failed to create group", error);
+    res.status(500).json({ error: "Couldn't create the group chat. Please try again." });
+  }
 });
 
 router.post("/conversations/:conversationId/members", requireAuth, async (req, res) => {
@@ -49,7 +58,7 @@ router.delete("/conversations/:conversationId/members/me", requireAuth, async (r
   if (!Number.isInteger(id)) return res.status(400).json({ error: "Invalid conversation ID" });
   const [conv] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, id)).limit(1);
   if (!conv?.isGroup) return res.status(404).json({ error: "Group not found" });
-  if (conv.createdBy === me) return res.status(400).json({ error: "The group creator cannot leave. Transfer ownership or delete the group first." });
+  if (conv.createdBy === me) return res.status(400).json({ error: "The group creator cannot leave their own group." });
   await db.delete(conversationParticipantsTable).where(and(eq(conversationParticipantsTable.conversationId, id), eq(conversationParticipantsTable.userId, me)));
   res.json({ ok: true });
 });
