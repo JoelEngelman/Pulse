@@ -9,9 +9,9 @@ import { Search, MessageSquarePlus, UsersRound } from "lucide-react";
 
 export function ConversationsList({ activeId }: { activeId?: number }) {
   const [search, setSearch] = useState(""); const [, setLocation] = useLocation();
-  const { data: currentUser } = useGetMe();
-  const { data: conversations, isLoading } = useListConversations({ query: { refetchInterval: 3000, queryKey: getListConversationsQueryKey() } });
-  const { data: users } = useListUsers({ search: search.length >= 1 ? search : undefined }, { query: { enabled: true } });
+  const { data: currentUser } = useGetMe({ query: { staleTime: Infinity, refetchOnWindowFocus: false } });
+  const { data: conversations, isLoading } = useListConversations({ query: { refetchInterval: 600, staleTime: 0, refetchOnWindowFocus: false, queryKey: getListConversationsQueryKey() } });
+  const { data: users } = useListUsers({ search: search.length >= 1 ? search : undefined }, { query: { enabled: true, staleTime: 5000 } });
   const createConversation = useCreateConversation();
   const startChat = (userId: number) => createConversation.mutate({ data: { participantId: userId } }, { onSuccess: conv => { setSearch(""); setLocation(`/conversations/${conv.id}`); } });
   if (isLoading) return <div className="p-4 text-sm text-muted-foreground">Loading conversations…</div>;
