@@ -22,12 +22,28 @@ router.post("/groups", requireAuth, async (req, res) => {
     if (users.length !== uniqueIds.length) return res.status(400).json({ error: "One or more users could not be found." });
 
     const result = await db.transaction(async (tx) => {
-      const [conv] = await tx.insert(conversationsTable).values({ name, isGroup: 1, createdBy: me }).returning();
-      await tx.insert(conversationParticipantsTable).values(uniqueIds.map((userId) => ({ conversationId: conv.id, userId })));
+      const [conv] = await tx.insert(conversationsTable).values({
+        name,
+        isGroup: 1,
+        createdBy: me,
+      }).returning();
+
+      if (!conv) throw new Error("Conversation was not created");
+
+      await tx.insert(conversationParticipantsTable).values(
+        uniqueIds.map((userId) => ({ conversationId: conv.id, userId }))
+      );
+
       return conv;
     });
 
-    res.status(201).json({ id: result.id, name: result.name, isGroup: true, participantIds: uniqueIds });
+    res.status(201).json({
+      id: result.id,
+      name: result.name,
+      isGroup: result.isGroup === 1,
+      createdBy: result.createdBy,
+      participantIds: uniqueIds,
+    });
   } catch (error) {
     console.error("Failed to create group", error);
     res.status(500).json({ error: "Couldn't create the group chat. Please try again." });
