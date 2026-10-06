@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
@@ -13,9 +14,9 @@ import Login from "@/pages/login"; import Register from "@/pages/register"; impo
 import "./pulse-motion.css";
 
 function SchoolHoursGate({ children }: { children: React.ReactNode }) {
-  const [blocked, setBlocked] = React.useState(false);
+  const [blocked, setBlocked] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const checkSchoolHours = () => {
       const now = new Date();
       const day = now.getDay();
