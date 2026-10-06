@@ -40,13 +40,14 @@ function SchoolHoursGate({ children }: { children: React.ReactNode }) {
           target="_blank"
           rel="noreferrer"
           aria-label="Open Pulse privacy and school safety information"
-          className="absolute right-5 top-5 rounded-xl outline-none transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-primary sm:right-8 sm:top-8"
+          className="absolute right-5 top-5 z-10 inline-flex items-center gap-3 rounded-2xl border border-border/70 bg-background/90 px-4 py-3 shadow-lg backdrop-blur-xl outline-none transition-all hover:-translate-y-0.5 hover:shadow-xl focus-visible:ring-2 focus-visible:ring-primary sm:right-8 sm:top-8"
         >
           <img
             src="https://elsternwickps.vic.edu.au/wp-content/uploads/2020/10/EPS_logo_primary-c-1536x583.png"
-            alt="Elsternwick Primary School — open Pulse privacy and school safety information"
-            className="w-36 max-w-[28vw] object-contain sm:w-44"
+            alt="Elsternwick Primary School"
+            className="h-8 w-auto max-w-[92px] object-contain sm:h-9 sm:max-w-[110px]"
           />
+          <span className="text-sm font-medium whitespace-nowrap">Privacy &amp; safety</span>
         </a>
         <div className="relative flex h-full items-center justify-center">
           <div className="w-full max-w-xl rounded-3xl border border-border/60 bg-background/80 px-8 py-10 shadow-2xl shadow-primary/5 backdrop-blur-xl sm:px-12 sm:py-12">
