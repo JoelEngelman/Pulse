@@ -11,7 +11,41 @@ import { CallManager } from "@/components/calling/call-manager";
 import { AppLayout } from "@/components/layout/app-layout";
 import Login from "@/pages/login"; import Register from "@/pages/register"; import Home from "@/pages/home"; import Social from "@/pages/social"; import Conversations from "@/pages/conversations"; import Chat from "@/pages/chat"; import Users from "@/pages/users"; import Search from "@/pages/search"; import Profile from "@/pages/profile"; import Settings from "@/pages/settings"; import Badges from "@/pages/badges"; import Safety from "@/pages/safety"; import Communities from "@/pages/communities"; import Notifications from "@/pages/notifications"; import AI from "@/pages/ai"; import CreatorStudio from "@/pages/creator-studio"; import Admin from "@/pages/admin"; import PublicProfile from "@/pages/public-profile"; import NotFound from "@/pages/not-found";
 import "./pulse-motion.css";
+
+function SchoolHoursGate({ children }: { children: React.ReactNode }) {
+  const [blocked, setBlocked] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkSchoolHours = () => {
+      const now = new Date();
+      const day = now.getDay();
+      const minutes = now.getHours() * 60 + now.getMinutes();
+      const isWeekday = day >= 1 && day <= 5;
+      const isSchoolHours = minutes >= 9 * 60 && minutes <= 15 * 60 + 30;
+      setBlocked(isWeekday && isSchoolHours);
+    };
+
+    checkSchoolHours();
+    const interval = window.setInterval(checkSchoolHours, 30_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  if (blocked) {
+    return (
+      <div className="h-[100dvh] w-full flex items-center justify-center bg-background px-6 text-center">
+        <div className="max-w-lg">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Sorry! Due to privacy reasons, Pulse is only available out of school!
+          </h1>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
+
 function ProtectedRoute({ component: Component }: { component: React.ComponentType<any> }) { const { isAuthenticated, isLoading } = useAuth(); if (isLoading) return <div className="h-[100dvh] w-full flex items-center justify-center bg-background"><div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" /></div>; if (!isAuthenticated) return <Redirect to="/login" />; return <AppLayout><div className="pulse-page-transition"><Component /></div></AppLayout>; }
 function HomeRedirect() { const { isAuthenticated, isLoading } = useAuth(); if (isLoading) return <div className="h-[100dvh] w-full flex items-center justify-center bg-background"><div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" /></div>; if (isAuthenticated) return <Redirect to="/feed" />; return <Redirect to="/login" />; }
 const queryClient = new QueryClient();
-export default function App(){return <ThemeProvider><QueryClientProvider client={queryClient}><TooltipProvider><WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/,"")}><AuthProvider><CallManager/><Switch><Route path="/" component={HomeRedirect}/><Route path="/login" component={Login}/><Route path="/register" component={Register}/><Route path="/u/:username" component={PublicProfile}/><Route path="/feed" component={()=> <ProtectedRoute component={Home}/>}/><Route path="/social" component={()=> <ProtectedRoute component={Social}/>}/><Route path="/conversations" component={()=> <ProtectedRoute component={Conversations}/>}/><Route path="/conversations/:id" component={()=> <ProtectedRoute component={Chat}/>}/><Route path="/users" component={()=> <ProtectedRoute component={Users}/>}/><Route path="/search" component={()=> <ProtectedRoute component={Search}/>}/><Route path="/profile" component={()=> <ProtectedRoute component={Profile}/>}/><Route path="/settings" component={()=> <ProtectedRoute component={Settings}/>}/><Route path="/safety" component={()=> <ProtectedRoute component={Safety}/>}/><Route path="/communities" component={()=> <ProtectedRoute component={Communities}/>}/><Route path="/notifications" component={()=> <ProtectedRoute component={Notifications}/>}/><Route path="/ai" component={()=> <ProtectedRoute component={AI}/>}/><Route path="/creator-studio" component={()=> <ProtectedRoute component={CreatorStudio}/>}/><Route path="/admin" component={()=> <ProtectedRoute component={Admin}/>}/><Route path="/badges" component={()=> <ProtectedRoute component={Badges}/>}/><Route component={NotFound}/></Switch></AuthProvider></WouterRouter><Toaster/><CookieBanner/><InstallPulse/><NameVoteCard/></TooltipProvider></QueryClientProvider></ThemeProvider>;}
+export default function App(){return <ThemeProvider><QueryClientProvider client={queryClient}><TooltipProvider><SchoolHoursGate><WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/,"")}><AuthProvider><CallManager/><Switch><Route path="/" component={HomeRedirect}/><Route path="/login" component={Login}/><Route path="/register" component={Register}/><Route path="/u/:username" component={PublicProfile}/><Route path="/feed" component={()=> <ProtectedRoute component={Home}/>}/><Route path="/social" component={()=> <ProtectedRoute component={Social}/>}/><Route path="/conversations" component={()=> <ProtectedRoute component={Conversations}/>}/><Route path="/conversations/:id" component={()=> <ProtectedRoute component={Chat}/>}/><Route path="/users" component={()=> <ProtectedRoute component={Users}/>}/><Route path="/search" component={()=> <ProtectedRoute component={Search}/>}/><Route path="/profile" component={()=> <ProtectedRoute component={Profile}/>}/><Route path="/settings" component={()=> <ProtectedRoute component={Settings}/>}/><Route path="/safety" component={()=> <ProtectedRoute component={Safety}/>}/><Route path="/communities" component={()=> <ProtectedRoute component={Communities}/>}/><Route path="/notifications" component={()=> <ProtectedRoute component={Notifications}/>}/><Route path="/ai" component={()=> <ProtectedRoute component={AI}/>}/><Route path="/creator-studio" component={()=> <ProtectedRoute component={CreatorStudio}/>}/><Route path="/admin" component={()=> <ProtectedRoute component={Admin}/>}/><Route path="/badges" component={()=> <ProtectedRoute component={Badges}/>}/><Route component={NotFound}/></Switch></AuthProvider></WouterRouter></SchoolHoursGate><Toaster/><CookieBanner/><InstallPulse/><NameVoteCard/></TooltipProvider></QueryClientProvider></ThemeProvider>;}
