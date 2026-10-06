@@ -35,11 +35,19 @@ function SchoolHoursGate({ children }: { children: React.ReactNode }) {
     return (
       <div className="relative h-[100dvh] w-full overflow-hidden bg-background px-6 text-center">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,hsl(var(--primary)/0.12),transparent_45%)]" />
-        <img
-          src="https://elsternwickps.vic.edu.au/wp-content/uploads/2020/10/EPS_logo_primary-c-1536x583.png"
-          alt="Elsternwick Primary School"
-          className="absolute right-5 top-5 w-36 max-w-[28vw] object-contain sm:right-8 sm:top-8 sm:w-44"
-        />
+        <a
+          href="https://joelengelman.github.io/pulse-help/privacy.html"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Open Pulse privacy and school safety information"
+          className="absolute right-5 top-5 rounded-xl outline-none transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-primary sm:right-8 sm:top-8"
+        >
+          <img
+            src="https://elsternwickps.vic.edu.au/wp-content/uploads/2020/10/EPS_logo_primary-c-1536x583.png"
+            alt="Elsternwick Primary School — open Pulse privacy and school safety information"
+            className="w-36 max-w-[28vw] object-contain sm:w-44"
+          />
+        </a>
         <div className="relative flex h-full items-center justify-center">
           <div className="w-full max-w-xl rounded-3xl border border-border/60 bg-background/80 px-8 py-10 shadow-2xl shadow-primary/5 backdrop-blur-xl sm:px-12 sm:py-12">
             <div className="mx-auto mb-7 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
