@@ -22,7 +22,7 @@ function SchoolHoursGate({ children }: { children: React.ReactNode }) {
       const day = now.getDay();
       const minutes = now.getHours() * 60 + now.getMinutes();
       const isWeekday = day >= 1 && day <= 5;
-      const isSchoolHours = minutes >= 9 * 60 && minutes <= 15 * 60 + 30;
+      const isSchoolHours = minutes >= 8 * 60 + 30 && minutes <= 15 * 60 + 30;
       setBlocked(isWeekday && isSchoolHours);
     };
 
