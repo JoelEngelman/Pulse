@@ -33,11 +33,25 @@ function SchoolHoursGate({ children }: { children: React.ReactNode }) {
 
   if (blocked) {
     return (
-      <div className="h-[100dvh] w-full flex items-center justify-center bg-background px-6 text-center">
-        <div className="max-w-lg">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Sorry! Due to privacy reasons, Pulse is only available out of school!
-          </h1>
+      <div className="relative h-[100dvh] w-full overflow-hidden bg-background px-6 text-center">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,hsl(var(--primary)/0.12),transparent_45%)]" />
+        <div className="relative flex h-full items-center justify-center">
+          <div className="w-full max-w-xl rounded-3xl border border-border/60 bg-background/80 px-8 py-10 shadow-2xl shadow-primary/5 backdrop-blur-xl sm:px-12 sm:py-12">
+            <div className="mx-auto mb-7 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7" aria-hidden="true">
+                <path d="M7 10V8a5 5 0 0 1 10 0v2M6 10h12a1 1 0 0 1 1 1v9H5v-9a1 1 0 0 1 1-1Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <p className="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Pulse
+            </p>
+            <h1 className="text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">
+              Sorry! Due to privacy reasons, Pulse is only available out of school!
+            </h1>
+            <p className="mt-4 text-sm leading-6 text-muted-foreground">
+              Pulse will be available again after school hours.
+            </p>
+          </div>
         </div>
       </div>
     );
